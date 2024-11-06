@@ -1,0 +1,1 @@
+arduino-cli compile --fqbn arduino:avr:uno --build-path ./output blink/blink.ino
