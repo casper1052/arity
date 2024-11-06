@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload HEX to Arduino with WebSerial</title>
+</head>
+<body>
+  <h1>Upload HEX to Arduino via WebSerial</h1>
+
+  <button id="connectButton">Connect to Arduino</button>
+  <input type="file" id="hexFile" accept=".hex">
+  <button id="uploadButton" disabled>Upload</button>
+
+  <script>
+    const connectButton = document.getElementById("connectButton");
+    const uploadButton = document.getElementById("uploadButton");
+    const hexFileInput = document.getElementById("hexFile");
+
+    let arduinoPort;
+
+    // Function to connect to Arduino using WebSerial
+    connectButton.addEventListener("click", async () => {
+      try {
+        arduinoPort = await navigator.serial.requestPort(); // Open serial port
+        await arduinoPort.open({ baudRate: 115200 }); // Open with baud rate of 115200
+        connectButton.disabled = true;
+        uploadButton.disabled = false;
+        alert("Arduino connected via WebSerial!");
+      } catch (error) {
+        console.error("Error connecting to Arduino:", error);
+        alert("Connection failed!");
+      }
+    });
+
+    // Function to upload the .hex file to the Arduino via WebSerial
+    uploadButton.addEventListener("click", async () => {
+      const hexFile = hexFileInput.files[0];
+      if (!hexFile) {
+        alert("Please select a .hex file first.");
+        return;
+      }
+
+      // Convert .hex file to ArrayBuffer (byte representation)
+      const fileData = await hexFile.arrayBuffer();
+      const byteArray = new Uint8Array(fileData);
+
+      try {
+        // Write data to Arduino via WebSerial
+        const writer = arduinoPort.writable.getWriter();
+
+        // Optionally, send the data in chunks (since large files might overwhelm the serial buffer)
+        const chunkSize = 64; // 64 bytes per chunk
+        for (let i = 0; i < byteArray.length; i += chunkSize) {
+          const chunk = byteArray.slice(i, i + chunkSize);
+          await writer.write(chunk);
+        }
+
+        // Close the writer after transmission is complete
+        writer.releaseLock();
+        alert("File uploaded successfully!");
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        alert("Upload failed.");
+      }
+    });
+  </script>
+</body>
+</html>
